@@ -4,12 +4,12 @@ Seguimos utilzado el proyecto anterior, por tanto, es necesario realizar instala
 
 Para generar el build (genera la carpeta `dist`) de producción a través del siguiente comando:
 
-```txt
-$: npm run build
+```bash
+npm run build
 ```
 
 Para ejecutar la aplicación modo producción, usamos el siguiente comando:
 
-```txt
-$: npm run start:prod
+```bash
+npm run start:prod
 ```

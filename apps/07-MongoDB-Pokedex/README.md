@@ -15,11 +15,15 @@ Esta sección enteramente se enfoca en la grabación a base de datos, pero puntu
 
 Vamos a crear un nuevo proyecto para esta sección, para ello usamos el siguiente comando, en mi caso usaré como gestor de paquetes a npm:
 
-```txt
-$: nest new pokedex
+```bash
+nest new pokedex
 ```
 
-Recordar que para levantar el proyecto en modo desarrollo usamos el comando `npm run start:dev`
+Recordar que para levantar el proyecto en modo desarrollo usamos el comando 
+
+```bash
+npm run start:dev
+```
 
 ## Servir contenido estático
 
@@ -62,8 +66,8 @@ h1 {
 
 Ahora, para servir contenido estático dentro de la aplicación, necesitamos instalar un paquete con el siguiente comando:
 
-```txt
-$: npm install @nestjs/serve-static
+```bash
+npm install @nestjs/serve-static
 ```
 
 Dentro del archivo `app.module.ts` añadimos la siguiente configuración:
@@ -89,8 +93,8 @@ Con ello, al momento de ir al endpoint `http://localhost:3000` tendremos una pá
 
 Vamos a generar un resource para pokemon con el siguiente comando:
 
-```txt
-$: nest g res pokemon --no-spec
+```bash
+nest g res pokemon --no-spec
 ```
 
 Un prefijo global es un segmento del endpoint que se comparte a través de todos los demás. En muchas apis podemos observar prefijos globales como `https://<url>/api/v1/<segmento de consulta>`, vamos a aplicar algo similar en nuestro backend con la siguiente configuración: Dentro del archivo `main.ts` aplicamos una configuración a nivel global:
@@ -131,21 +135,46 @@ services:
 
 Para ejecutar este archivo en modo `detach` o en segundo plano, usamos el siguiente comando con el que se descargan las diferentes layers de la imagen y se crea el contenedor:
 
-```txt
-$: docker-compose up -d
+```bash
+docker-compose up -d
 ```
 
 Como definimos que el volumen fuera de tipo bind-volume entre el equipo host y el contenedor, tendremos una nueva carpeta en el proyecto llamada `mongo`, la cual podemos añadir a la lista de `.gitignore` con el fin de no subirla al repositorio.
 
 Finalmente, podemos hacer un seguimiento del contenedor con el comando de:
 
-```txt
-$: docker container ls
+```bash
+docker container ls
 ```
 
 Mediante MondoDB Compass podemos conectarnos a la base de datos y probar que si está corriendo. Como URL para la conexión usamos el enlace `mongodb://localhost:27017/nest-pokemon`, y si obtenemos un OK en el test de conexión, hemos logrado crear todo bien, en caso contrario debemos observar los logs del contenedor con el siguiente comando:
 
-```txt
-$: docker logs <id del contenedor>
+```bash
+docker logs <id del contenedor>
 ```
 
+## Conectar Nest con Mongo
+
+Vamos a usar un adaptador de `mongoose` creado por los desarrolladores de Nest con el fin de mantener nuestra aplicación más segura contra fallas del lado de la base de datos. Para la instalación usamos el siguiente comando:
+
+```bash
+npm install -s @nestjs/mongoose mongoose
+```
+
+Ahora dentro de `app.module.ts` creamos la referencia a nuestra base de datos:
+
+```ts
+import { MongooseModule } from '@nestjs/mongoose'
+...
+
+@Module( {
+    imports: [
+        ...,
+        MongooseModule.forRoot( 'mongodb://localhost:27017/nest-pokemon' ),
+        ...
+    ]
+} )
+export class AppModule { }
+```
+
+Si no contamos con la base de datos, entonces tendremos un error en los logs del proyecto al momento de levantarlo, y no avanzará hasta que no reconozca la base de datos.
