@@ -178,3 +178,55 @@ export class AppModule { }
 ```
 
 Si no contamos con la base de datos, entonces tendremos un error en los logs del proyecto al momento de levantarlo, y no avanzará hasta que no reconozca la base de datos.
+
+## Crear esquemas y modelos
+
+Revisamos `https://pokeapi.co/api/v2/pokemon` para ver como es nuestro modelo de pokemon. Necesitamos definir como serán nuestras colecciones, y esto lo haremos a través de la entidad.  Una entidad es una clase con la que podemos definir reglas de negocio, en este caso definimos que estructura deben seguir las colecciones y como se hace la inserción de las instancias de la clase conocidas como documentos.
+
+En la entidad del Pokemon establecemos mediante el decorador `@Schema` que siga esa estructura para las colecciones en la base de datos, luego hacemos que la clase extienda de `Document` mediante la cual heredamos propiedades y métodos propios de mongoose. Por defecto mongo genera un identificador único para cada documento, por lo cual no definimos esa propiedad dentro de la clase, pero añadimos la propiedad de nombre y número del pokemon, a las cuales también les añadimos un decorador llamado `@Prop` para indicarle que sean únicos en la base de datos y que tengan un indice para facilitar las búsquedas. Por últimos exportamos una schema que se crea a partir de la clase:
+
+```ts
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose"
+import { Document } from "mongoose"
+
+@Schema()
+export class Pokemon extends Document {
+    @Prop( {
+        unique: true,
+        index: true
+    } )
+    name: string
+
+    @Prop( {
+        unique: true,
+        index: true
+    } )
+    number: number
+}
+
+export const PokemonSchema = SchemaFactory.createForClass( Pokemon )
+```
+
+Dentro de `pokemon.module.ts` hacemos una declaración en los imports, en el cual le decimos a mongoose que reconozca un modelo, en el que obtenga el nombre de la entidad, y el esquema que exportamos:
+
+```ts
+import { MongooseModule } from '@nestjs/mongoose'
+import { Pokemon, PokemonSchema } from './entities/pokemon.entity'
+...
+
+@Module( {
+    ...,
+    imports: [
+        MongooseModule.forFeature( [
+            {
+                name: Pokemon.name,
+                schema: PokemonSchema
+            }
+        ] )
+    ]
+} )
+export class PokemonModule { }
+```
+
+Luego, cuando levantamos el proyecto, podemos revisar en TablePlus que la colección `pokemons` se ha creado correctamente.
+
