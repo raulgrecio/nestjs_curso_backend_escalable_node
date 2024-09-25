@@ -1,7 +1,7 @@
 # compiled output
-/**/dist
-/**/node_modules
-/**/build
+/dist
+/node_modules
+/build
 
 # Logs
 logs
@@ -11,9 +11,6 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
-
-# artefacts
-.yarn/install-state.gz
 
 # OS
 .DS_Store
@@ -57,11 +54,3 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-
-
-# binaries
-/**/mongo/*
-
-*.tgz
-*.zip
-*.tar.gz
