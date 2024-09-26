@@ -2,12 +2,13 @@
   "name": "curso-nest",
   "version": "1.0.0",
   "description": "Nestjs tutorial taught by Fernando Herrera from the Udemy platform",
-  "scripts": {
-  },
-  "keywords": ["nestjs"],
+  "scripts": {},
+  "keywords": [
+    "nestjs"
+  ],
   "author": "",
   "license": "ISC",
-  "workspaces":[
+  "workspaces": [
     "./apps/*/*"
   ]
 }

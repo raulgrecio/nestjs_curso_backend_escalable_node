@@ -1,0 +1,29 @@
+{
+  "monorepo": true,
+  "root": "apps/06-cars-dealership/cars-dealership",
+  "sourceRoot": "apps/06-cars-dealership/cars-dealership/src",
+  "compilerOptions": {
+    "webpack": true,
+    "tsConfigPath": "apps/06-cars-dealership/cars-dealership/tsconfig.app.json"
+  },
+  "projects": {
+    "06-cars-dealership": {
+      "type": "application",
+      "root": "apps/06-cars-dealership/cars-dealership",
+      "entryFile": "main",
+      "sourceRoot": "apps/06-cars-dealership/cars-dealership/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/06-cars-dealership/cars-dealership/tsconfig.app.json"
+      }
+    },
+    "07-MongoDB-Pokedex": {
+      "type": "application",
+      "root": "apps/apps/07-MongoDB-Pokedex/pokedex",
+      "entryFile": "main",
+      "sourceRoot": "apps/07-MongoDB-Pokedex/pokedex/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/07-MongoDB-Pokedex/pokedex/tsconfig.app.json"
+      }
+    }
+  }
+}
