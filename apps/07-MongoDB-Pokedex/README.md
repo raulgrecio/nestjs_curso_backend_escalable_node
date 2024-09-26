@@ -547,3 +547,108 @@ export class PokemonService {
 ```
 
 En estos momentos podemos usar el 'name', 'no' o 'id' para ejecutar la eliminación, en la siguiente lección vamos a crear un Pipe personalizado con nos ayude con la validación de que el parámetro de búsqueda tenga que ser exclisivamente un id de mongo (simplemente por lógica de negocio)
+
+## CustomPipes - ParseMongoIdPipe
+
+Vamos a crear un custom pipe que nos permita validar que el parámetro de eliminación siempre sea un id de mongo. En este caso el pipe será creado a nivel global, ya que todo nuestro proyecto trabaja con MongoDB.
+
+Primero vamos a crear un módulo que almacenes elementos de uso común:
+
+```bash
+nest g mo common
+```
+
+Para generar un pipe sin archivo de test y sin carpeta usamos el siguiente comando:
+
+```bash
+nest g pi common/pipes/parse-mongo-id --no-spec --flat
+```
+
+El archivo que se genera tiene la siguiente estructura:
+
+```ts
+import { ArgumentMetadata, Injectable, PipeTransform } from '@nestjs/common'
+
+@Injectable()
+export class ParseMongoIdPipe implements PipeTransform {
+    transform ( value: string, metadata: ArgumentMetadata ) {
+        return value
+    }
+}
+```
+
+Vamos a usar dentro del método de eliminación en el controlador:
+
+```ts
+import { ParseMongoIdPipe } from 'src/common/pipes/parse-mongo-id.pipe'
+....
+
+@Controller( 'pokemon' )
+export class PokemonController {
+    ...
+    @Delete( ':id' )
+    remove ( @Param( 'id', ParseMongoIdPipe ) id: string ) {
+        return this.pokemonService.remove( id )
+    }
+}
+```
+
+Si imprimimos lo que recibe el pipe, tendremos un resultado como el siguiente:
+
+```txt
+{
+    value: '63dab2df106b7e1f132cc658',
+    metadata: { metatype: [Function: String], type: 'param', data: 'id' }
+}
+```
+
+Vamos a transformar el pipe para obtener la función que habíamos mencionado anteriormente:
+
+```ts
+@Injectable()
+export class ParseMongoIdPipe implements PipeTransform {
+    transform ( value: string, metadata: ArgumentMetadata ) {
+        if ( !isValidObjectId( value ) )
+            throw new BadRequestException( `${ value } is not a valid MongoID` )
+        return value
+    }
+}
+```
+
+De esta manera logramos que si no nos envían un Mongo ID valido, no pueda pasar al servicio de eliminación.
+
+Vamos a simplificar un poco el servicio de eliminación, evitando hacer 2 consultas:
+
+```ts
+@Injectable()
+export class PokemonService {
+    ...
+    async remove ( id: string ) {
+        const result = await this._pokemonModel.findByIdAndDelete( id )
+        await result
+    }
+    ...
+}
+```
+
+El único inconveniente de este nuevo método consiste en que si enviamos un id valido pero no existente, nuestra aplicación aún así responde con un status 200.
+
+## Validar y eliminar en una sola consulta
+
+Vamos a evitar los falsos positivos, a no ser que queramos respuestas idempotentes, al momento de la eliminación usando el método `deleteOne` y analizando una de sus propiedades retornadas:
+
+```ts
+@Injectable()
+export class PokemonService {
+    ...
+    async remove ( id: string ) {
+        const { deletedCount } = await this._pokemonModel.deleteOne( { _id: id } )
+        if ( deletedCount === 0 )
+            throw new NotFoundException( `Pokemon with id ${ id } not found` )
+        return
+    }
+    ...
+}
+```
+
+Si no hay cambios aplicados sobre la base de datos, significa que no encontró el id y por lo tanto eliminamos un código 404, en caso contrario retornamos un status 200.
