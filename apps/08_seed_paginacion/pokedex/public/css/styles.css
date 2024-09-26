@@ -1,0 +1,11 @@
+@import url('/css_reset.css');
+
+body, html{
+  padding: 1rem;
+  background-color: lightgray 
+}
+
+h1{
+  font-size: xx-large;
+  color: white;
+}
