@@ -1,4 +1,7 @@
 {
+  "dependencies": {
+    "@nestjs/mapped-types": "*"
+  },
   "name": "curso-nest",
   "version": "1.0.0",
   "description": "Nestjs tutorial taught by Fernando Herrera from the Udemy platform",

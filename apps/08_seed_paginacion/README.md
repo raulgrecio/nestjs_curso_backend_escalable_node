@@ -35,3 +35,12 @@ Y levantamos el proyecto con el siguiente comando:
 ```bash
 npm start:dev
 ```
+
+## Crear módulo SEED
+
+Vamos a crear un módulo SEED que se encargue de llenar con registros la base de datos, de manera que luego podamos hacer la paginación y probarla de manera correcta. Lo primero será crear el módulo mediante un resource con el siguiente comando:
+
+
+```bash
+nest g res seed --no-spec
+```
