@@ -128,11 +128,11 @@ export class SeedService {
         if (!response.ok) throw new Error(`Error in call PokeAPI`);
         const data: PokeResponse = await response.json();
 
-        data.results.forEach( ( { name, url } ) => {
+        data.results.forEach( ({name, url }) => {
             const segments = url.split( '/' )
             const no: number = parseInt(segments[segments.length - 2]);
-            console.log( { name, no } )
-        } )
+            console.log({name, no})
+        })
         return
     }
 }
@@ -144,10 +144,10 @@ Para la inserción de los pokemons debemos hacer la inyección del servicio de p
 import { PokemonService } from './pokemon.service'
 ...
 
-@Module( {
+@Module({
     ...,
     exports: [ PokemonService ]
-} )
+})
 export class PokemonModule { }
 ```
 
@@ -155,10 +155,10 @@ export class PokemonModule { }
 import { PokemonModule } from '../pokemon/pokemon.module'
 ...
 
-@Module( {
+@Module({
     ...,
     imports: [ PokemonModule ]
-} )
+})
 export class SeedModule { }
 ```
 
@@ -190,11 +190,11 @@ export class SeedService {
         if (!response.ok) throw new Error(`Error in call PokeAPI`);
         const data: PokeResponse = await response.json();
 
-        data.results.forEach( ( { name, url } ) => {
+        data.results.forEach( ({name, url }) => {
             const segments = url.split( '/' )
             const no: number = parseInt(segments[segments.length - 2]);
-            this._pokemonService.create( { name: name.toLowerCase(), no } )
-        } )
+            this._pokemonService.create({name: name.toLowerCase(), no})
+        })
 
         return
     }
@@ -207,18 +207,18 @@ Otra manera es usando el modelo de Pokemon y no el servicio del mismo módulo. L
 import { MongooseModule } from '@nestjs/mongoose'
 ...
 
-@Module( {
+@Module({
     ...,
     imports: [
-        MongooseModule.forFeature( [
+        MongooseModule.forFeature([
             {
                 name: Pokemon.name,
                 schema: PokemonSchema
             }
-        ] )
+        ])
     ],
     exports: [ MongooseModule ]
-} )
+})
 export class PokemonModule { }
 ```
 
@@ -237,12 +237,182 @@ export class SeedService {
         if (!response.ok) throw new Error(`Error in call PokeAPI`);
         const data: PokeResponse = await response.json();
 
-        data.results.forEach( async ( { name, url } ) => {
+        await this._pokemonModel.deleteMany({})
+        data.results.forEach( async ({name, url }) => {
             const segments = url.split( '/' )
             const no: number = parseInt(segments[segments.length - 2]);
-            const pokemon = await this._pokemonModel.create({ name: name.toLowerCase(), no })
-        } )
+            const pokemon = await this._pokemonModel.create({name: name.toLowerCase(), no})
+        })
         return
     }
+}
+```
+
+Con el anterior método usamos la inserción 1 a 1 de los registros, pero podemos usar la inserción múltiple que ya nos ofrece mongoose. El tiempo de ejecución está en un rango similar al anterior, pero el código es más limpio:
+
+```ts
+@Injectable()
+export class SeedService {
+    ...
+    constructor (
+        @InjectModel( Pokemon.name ) private readonly _pokemonModel: Model<Pokemon>
+    ) { }
+
+    async executeSeed () {
+        const response = await fetch(
+          'https://pokeapi.co/api/v2/pokemon?offset=0&limit=10',
+        );
+
+        if (!response.ok) throw new Error(`Error in call PokeAPI`);
+        const data: PokeResponse = await response.json();
+
+        const pokemonToInsert: {name: string, no: number}[] = []
+        data.results.forEach( async ({name, url}) => {
+            const segments = url.split('/')
+            const no: number = parseInt(segments[segments.length - 2]);
+            pokemonToInsert.push({name: name.toLowerCase(), no})
+        })
+
+        await this._pokemonModel.deleteMany({})
+        await this._pokemonModel.insertMany(pokemonToInsert)
+
+        return "Seed Executed"
+    }
+}
+```
+
+En siguientes secciones vamos a ver otra opción y cual podría ser mejor para la inserción de múltiples documentos.
+
+## Insertar múltiples registros simultáneamente
+
+En la lección anterior vimos dos opciones de como guardar los registros en el servicio del Seed. Tanto la primera como la segunda opción presentan el inconveniente de que es muy tardada la inserción de los datos dentro de la base de datos, puesto que se tiene que esperar que termine una inserción para pasar a la siguiente, entonces, si son múltiples registros el tiempo se incrementa por cada uno. Al momento de imprimir el tiempo de ejecución desde el controlador, con los dos métodos anteriores tenemos resultados en un rango de entre `40ms` a `55ms`.
+
+Vamos a intentar con otra solución, en la cual creamos un arreglo al cual le enviamos todas las promesas de inserción en la base de datos en cada recorrido del array, y luego ejecutamos todas las promesas mediante `Promises.all`. El tiempo de ejecución va de los `0.1ms` a los `3ms`:
+
+```ts
+@Injectable()
+export class SeedService {
+    ...
+    constructor (
+        @InjectModel( Pokemon.name ) private readonly _pokemonModel: Model<Pokemon>
+    ) { }
+
+    async executeSeed () {
+        const response = await fetch(
+          'https://pokeapi.co/api/v2/pokemon?offset=0&limit=10',
+        );
+
+        if (!response.ok) throw new Error(`Error in call PokeAPI`);
+        const data: PokeResponse = await response.json();
+
+        const insertPromisesArray = []
+        data.results.forEach( async ({name, url }) => {
+            const segments = url.split( '/' )
+            const no: number = parseInt(segments[segments.length - 2]);
+            insertPromisesArray.push(
+                this._pokemonModel.create({name: name.toLowerCase(), no})
+            )
+        })
+
+        await this._pokemonModel.deleteMany({})
+        await Promise.all( insertPromisesArray )
+
+        return "Seed Executed"
+    }
+}
+```
+
+Con el anterior método usamos la inserción 1 a 1 de los registros, pero podemos usar la inserción múltiple que ya nos ofrece mongoose. El tiempo de ejecución está en un rango similar al anterior, pero el código es más limpio:
+
+```ts
+@Injectable()
+export class SeedService {
+    ...
+    constructor (
+        @InjectModel( Pokemon.name ) private readonly _pokemonModel: Model<Pokemon>
+    ) { }
+
+    async executeSeed () {
+        const response = await fetch(
+          'https://pokeapi.co/api/v2/pokemon?offset=0&limit=10',
+        );
+
+        if (!response.ok) throw new Error(`Error in call PokeAPI`);
+        const data: PokeResponse = await response.json();
+
+        const pokemonToInsert: { name: string, number: number }[] = []
+        data.results.forEach( async ({name, url }) => {
+            const segments = url.split( '/' )
+            const no: number = parseInt(segments[segments.length - 2]);
+            pokemonToInsert.push({name: name.toLowerCase(), no})
+        })
+
+        await this._pokemonModel.deleteMany({})
+        await this._pokemonModel.insertMany( pokemonToInsert )
+
+        return "Seed Executed"
+    }
+}
+```
+
+La última opcion es trasladar el seed al modulo de Pokemon para eso:
+creamos un nuevo método con tal proposito en el `pokemoService`:
+
+```ts
+
+...
+  async seed(seedDto: CreatePokemonDto[]) {
+    await this.pokemonModel.deleteMany({});
+    await this.pokemonModel.insertMany(seedDto);
+  }
+...
+
+```
+
+exportamos `pokemonService` desde `PokemonModule`
+
+```ts
+@Module({
+  ...
+  exports: [PokemonService],
+})
+```
+
+lo importamos desde `SeedModule`
+```ts
+@Module({
+  ...
+  imports: [PokemonModule],
+})
+```
+
+Y por ultimo realizamos la llamada al `pokemonService` desde el metodo `executeSeed` pasando los datos a insertar
+
+```ts
+import { PokemonService } from '../pokemon/pokemon.service';
+
+@Injectable()
+export class SeedService {
+  constructor(private readonly pokemonService: PokemonService) {}
+
+  async executeSeed() {
+    const response = await fetch(
+      'https://pokeapi.co/api/v2/pokemon?offset=0&limit=650',
+    );
+
+    if (!response.ok) throw new Error(`Error in call PokeAPI`);
+    const data: PokeResponse = await response.json();
+
+    const pokemonToInsert: Array<{ name: string; no: number }> = [];
+
+    data.results.forEach(({ name, url }) => {
+      const segments = url.split('/');
+      const no: number = parseInt(segments[segments.length - 2]);
+      pokemonToInsert.push({ name: name.toLowerCase(), no });
+    });
+
+    await this.pokemonService.seed(pokemonToInsert);
+    return 'Seed executed';
+  }
 }
 ```

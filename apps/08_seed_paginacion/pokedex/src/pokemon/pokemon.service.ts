@@ -80,6 +80,11 @@ export class PokemonService {
     return;
   }
 
+  async seed(seedDto: CreatePokemonDto[]) {
+    await this.pokemonModel.deleteMany({});
+    await this.pokemonModel.insertMany(seedDto);
+  }
+
   private handleExceptions(error: any) {
     if (error.code === this.DuplicateKeyError) {
       throw new BadRequestException(
